@@ -42,6 +42,9 @@ add_library(fsim_core
     src/ground/LandingGear.cpp
     src/terrain/Terrain.cpp
     src/render/Camera.cpp
+    src/systems/Engine.cpp
+    src/systems/Instruments.cpp
+    src/systems/Navigation.cpp
 )
 target_include_directories(fsim_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -86,12 +89,27 @@ if(FSIM_BUILD_RENDERER)
         GIT_REPOSITORY https://github.com/Dav1dde/glad.git
         GIT_TAG        v2.0.6
         SOURCE_SUBDIR  cmake)
-    FetchContent_MakeAvailable(glfw glad)
+    FetchContent_Declare(imgui
+        GIT_REPOSITORY https://github.com/ocornut/imgui.git
+        GIT_TAG        v1.91.5)
+    FetchContent_MakeAvailable(glfw glad imgui)
 
     # Generate an OpenGL 3.3 core loader target named glad_gl_core_33.
     glad_add_library(glad_gl_core_33 STATIC API gl:core=3.3)
 
     find_package(OpenGL REQUIRED)
+
+    # Dear ImGui (no upstream CMake): build the core + GLFW/OpenGL3 backends.
+    add_library(imgui STATIC
+        ${imgui_SOURCE_DIR}/imgui.cpp
+        ${imgui_SOURCE_DIR}/imgui_draw.cpp
+        ${imgui_SOURCE_DIR}/imgui_tables.cpp
+        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp)
+    target_include_directories(imgui PUBLIC
+        ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+    target_link_libraries(imgui PUBLIC glfw OpenGL::GL)
 
     add_library(fsim_render
         src/render/gl/Shader.cpp
@@ -103,5 +121,5 @@ if(FSIM_BUILD_RENDERER)
         PUBLIC fsim_core glad_gl_core_33 glfw OpenGL::GL)
 
     add_executable(fsim_viewer src/app/viewer.cpp)
-    target_link_libraries(fsim_viewer PRIVATE fsim_render)
+    target_link_libraries(fsim_viewer PRIVATE fsim_render imgui)
 endif()

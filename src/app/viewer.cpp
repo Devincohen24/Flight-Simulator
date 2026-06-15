@@ -29,6 +29,12 @@
 #include "propulsion/Propulsion.hpp"
 #include "ground/LandingGear.hpp"
 #include "terrain/Terrain.hpp"
+#include "systems/Engine.hpp"
+#include "systems/Instruments.hpp"
+
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
 
 #include <chrono>
 #include <cstdio>
@@ -45,7 +51,38 @@ struct App {
     Camera camera;
     RigidBodyState prev, curr;
     TrimResult trim;
+    EngineSystem* engine{nullptr};
 };
+
+// Draw the instrument overlay (Dear ImGui) from the live simulation state.
+void drawHud(const App& app) {
+    const EnvironmentSample env = app.sim.environment();
+    const InstrumentReadings r = computeInstruments(
+        app.sim.state(), env, app.engine->state(), app.sim.specificForceBody());
+
+    const char* camName[] = {"Chase", "Cockpit", "Orbit", "Flyby"};
+
+    ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowBgAlpha(0.55f);
+    ImGui::Begin("Instruments", nullptr,
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Text("IAS  %6.1f kt   (TAS %5.1f)", r.indicatedAirspeed * 1.94384,
+                r.trueAirspeed * 1.94384);
+    ImGui::Text("ALT  %6.0f ft   VS %+6.0f fpm", r.altitudeMSL * 3.28084,
+                r.verticalSpeed * 196.85);
+    ImGui::Text("HDG  %6.0f deg", r.heading);
+    ImGui::Text("PITCH %+5.1f   BANK %+5.1f", r.pitch, r.bank);
+    ImGui::Text("AoA  %5.1f deg  SLIP %+4.2f", r.angleOfAttack, r.slip);
+    ImGui::Text("LOAD %5.2f g   TURN %+5.1f deg/s", r.loadFactor, r.turnRate);
+    ImGui::Separator();
+    ImGui::Text("RPM  %6.0f   MP %4.1f inHg", r.rpm, r.manifoldPressure);
+    ImGui::Text("FUEL %6.1f kg  FLOW %.3f kg/s", r.fuelRemaining, r.fuelFlow);
+    ImGui::Separator();
+    ImGui::Text("THR %3.0f%%  FLAP %3.0f%%", app.controls.throttle * 100.0,
+                app.controls.flaps * 100.0);
+    ImGui::Text("Camera: %s  [1-4]  R=reset", camName[int(app.camera.mode)]);
+    ImGui::End();
+}
 
 App* g_app = nullptr;
 
@@ -163,6 +200,10 @@ int main(int argc, char** argv) {
     app.sim.addForceModel(std::make_shared<GravityForce>());
     app.sim.addForceModel(std::make_shared<LandingGearForce>(ac.gear, terrain.get()));
 
+    EngineSystem engine(ac.propulsion);
+    engine.start();
+    app.engine = &engine;
+
     app.trim = trimLevelFlight(ac, 55.0, 800.0);
     resetToTrim(app);
     app.camera.mode = CameraMode::Chase;
@@ -182,6 +223,13 @@ int main(int argc, char** argv) {
     glfwSetKeyCallback(window, keyCallback);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
+    // Dear ImGui instrument overlay (chains to the callbacks set above).
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
     // --- Main loop: fixed-step physics + interpolated rendering ---
     const double dt = app.sim.fixedTimeStep();
     double accumulator = 0.0;
@@ -198,20 +246,35 @@ int main(int argc, char** argv) {
         pollControls(window, app, frame);
 
         while (accumulator >= dt) {
+            const EnvironmentSample env = app.sim.environment();
+            engine.update(dt, app.controls.throttle,
+                          env.atmosphere.density / 1.225, env.atmosphere.pressure);
             app.prev = app.sim.state();
             app.sim.step();
             app.curr = app.sim.state();
             accumulator -= dt;
         }
 
+        // Begin the ImGui frame and build the HUD.
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        drawHud(app);
+        ImGui::Render();
+
+        // Draw the 3D scene, then the overlay.
         const double alpha = accumulator / dt;
         const RenderState rs = interpolateState(app.prev, app.curr, alpha);
         app.camera.update(rs);
         renderer.renderFrame(app.camera, rs);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
     }
 
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     glfwTerminate();
     return 0;
 }

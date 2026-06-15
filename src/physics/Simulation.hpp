@@ -45,6 +45,10 @@ public:
     // Total force/moment currently acting on the aircraft (for HUD / debugging).
     Wrench currentWrench() const;
 
+    // Non-gravitational acceleration in the body frame -- what an accelerometer
+    // (and hence the load-factor/slip instruments) senses: (F_total - mg)/m.
+    Vec3 specificForceBody() const;
+
     // Advance exactly one fixed physics step.
     void step();
 

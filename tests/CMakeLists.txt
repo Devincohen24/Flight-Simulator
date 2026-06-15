@@ -12,6 +12,8 @@ set(FSIM_TESTS
     test_mat4
     test_render
     test_terrain
+    test_systems
+    test_navigation
 )
 
 foreach(test_name ${FSIM_TESTS})

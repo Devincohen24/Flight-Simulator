@@ -90,6 +90,11 @@ Aircraft Aircraft::load(const std::string& path) {
         readNumber(p, "prop_diameter",   ac.propulsion.propDiameter);
         readNumber(p, "prop_efficiency", ac.propulsion.propEfficiency);
         readNumber(p, "idle_power_fraction", ac.propulsion.idlePowerFraction);
+        readNumber(p, "idle_rpm",        ac.propulsion.idleRpm);
+        readNumber(p, "max_rpm",         ac.propulsion.maxRpm);
+        readNumber(p, "spool_tau",       ac.propulsion.spoolTau);
+        readNumber(p, "bsfc",            ac.propulsion.bsfc);
+        readNumber(p, "fuel_capacity",   ac.propulsion.fuelCapacity);
         ac.propulsion.thrustPoint = readVec3(p.get("thrust_point"), ac.propulsion.thrustPoint);
         ac.propulsion.thrustAxis  = readVec3(p.get("thrust_axis"),  ac.propulsion.thrustAxis);
     }

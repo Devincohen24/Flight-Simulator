@@ -67,6 +67,13 @@ struct PropulsionConfig {
     Vec3   thrustPoint   {0.0, 0.0, 0.0}; // application point in body frame (m)
     Vec3   thrustAxis    {1.0, 0.0, 0.0}; // direction of thrust in body frame
     double idlePowerFraction{0.05};  // residual power at zero throttle
+
+    // Engine-systems parameters (RPM, fuel) used by the instrument/engine model.
+    double idleRpm      {700.0};     // rev/min at idle
+    double maxRpm       {2700.0};    // rev/min at full throttle
+    double spoolTau     {0.6};       // s, first-order engine response time
+    double bsfc         {8.9e-8};    // brake specific fuel consumption, kg/(W*s)
+    double fuelCapacity {144.0};     // kg of usable fuel (~53 US gal avgas)
 };
 
 // --- One landing-gear contact point (spring-damper strut + tire friction) ---

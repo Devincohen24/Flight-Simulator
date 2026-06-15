@@ -18,6 +18,14 @@ Wrench Simulation::currentWrench() const {
     return forces_.total(state_, mass_, environment(), controls_);
 }
 
+Vec3 Simulation::specificForceBody() const {
+    const Wrench w = currentWrench();
+    // Subtract the weight (gravity contributes m*g_body to the total force).
+    const Vec3 gravityBody = state_.orientation.rotateInverse(
+        Vec3{0.0, 0.0, mass_.mass * constants::kStandardGravity});
+    return (w.force - gravityBody) * (1.0 / mass_.mass);
+}
+
 void Simulation::step() {
     const EnvironmentSample env = environment();
 
