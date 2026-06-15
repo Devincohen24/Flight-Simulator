@@ -184,6 +184,35 @@ struct Quat {
         return r;
     }
 
+    constexpr double dot(const Quat& o) const {
+        return w * o.w + x * o.x + y * o.y + z * o.z;
+    }
+
+    // Spherical linear interpolation, used to smoothly interpolate attitude
+    // between two fixed-timestep physics states for variable-rate rendering.
+    // t in [0,1]; the result is normalised.
+    static Quat slerp(const Quat& a, Quat b, double t) {
+        double d = a.dot(b);
+        // Take the shorter arc.
+        if (d < 0.0) { b = b * -1.0; d = -d; }
+        if (d > 0.9995) {
+            // Nearly parallel: fall back to normalised linear interpolation.
+            return Quat{a.w + (b.w - a.w) * t,
+                        a.x + (b.x - a.x) * t,
+                        a.y + (b.y - a.y) * t,
+                        a.z + (b.z - a.z) * t}.normalized();
+        }
+        const double theta0 = std::acos(d);
+        const double theta  = theta0 * t;
+        const double sin0   = std::sin(theta0);
+        const double s0 = std::cos(theta) - d * std::sin(theta) / sin0;
+        const double s1 = std::sin(theta) / sin0;
+        return Quat{a.w * s0 + b.w * s1,
+                    a.x * s0 + b.x * s1,
+                    a.y * s0 + b.y * s1,
+                    a.z * s0 + b.z * s1}.normalized();
+    }
+
     // Build from an aerospace 3-2-1 Euler sequence (yaw psi, pitch theta,
     // roll phi), all in radians. Produces q_world_from_body.
     static Quat fromEuler(double roll, double pitch, double yaw) {

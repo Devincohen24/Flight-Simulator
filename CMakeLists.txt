@@ -40,6 +40,8 @@ add_library(fsim_core
     src/aero/Aerodynamics.cpp
     src/propulsion/Propulsion.cpp
     src/ground/LandingGear.cpp
+    src/terrain/Terrain.cpp
+    src/render/Camera.cpp
 )
 target_include_directories(fsim_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -58,9 +60,48 @@ if(FSIM_BUILD_TESTS)
 endif()
 
 # ---------------------------------------------------------------------------
-# Renderer (added at Milestone 3 — requires GLFW/OpenGL). Off by default so
-# the headless foundation always builds.
+# Renderer (Milestone 3) — OpenGL 3.3 + GLFW. OFF by default so the headless
+# foundation always builds with no GPU/windowing dependencies. Enable with
+#   cmake -S . -B build -DFSIM_BUILD_RENDERER=ON
+# GLFW and glad are fetched automatically (requires network on first config).
 # ---------------------------------------------------------------------------
 if(FSIM_BUILD_RENDERER)
-    message(STATUS "Renderer build requested (not yet implemented).")
+    message(STATUS "Renderer enabled: fetching GLFW + glad and building fsim_viewer.")
+    enable_language(C) # glad generates a C loader library
+    include(FetchContent)
+
+    set(GLFW_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    # Default to the X11 backend; enabling Wayland needs wayland-scanner and the
+    # wayland/xkbcommon dev packages. Override on the command line if desired.
+    option(FSIM_GLFW_WAYLAND "Build the GLFW Wayland backend" OFF)
+    if(NOT FSIM_GLFW_WAYLAND)
+        set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+    endif()
+    FetchContent_Declare(glfw
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG        3.4)
+    FetchContent_Declare(glad
+        GIT_REPOSITORY https://github.com/Dav1dde/glad.git
+        GIT_TAG        v2.0.6
+        SOURCE_SUBDIR  cmake)
+    FetchContent_MakeAvailable(glfw glad)
+
+    # Generate an OpenGL 3.3 core loader target named glad_gl_core_33.
+    glad_add_library(glad_gl_core_33 STATIC API gl:core=3.3)
+
+    find_package(OpenGL REQUIRED)
+
+    add_library(fsim_render
+        src/render/gl/Shader.cpp
+        src/render/gl/Renderer.cpp
+        src/render/gl/MeshBuilders.cpp
+    )
+    target_include_directories(fsim_render PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(fsim_render
+        PUBLIC fsim_core glad_gl_core_33 glfw OpenGL::GL)
+
+    add_executable(fsim_viewer src/app/viewer.cpp)
+    target_link_libraries(fsim_viewer PRIVATE fsim_render)
 endif()

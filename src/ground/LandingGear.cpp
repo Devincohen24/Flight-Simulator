@@ -28,9 +28,9 @@ Wrench LandingGearForce::evaluate(const RigidBodyState& state,
         const Vec3 rWorld = q.rotate(g.position);
         const Vec3 pWorld = state.positionWorld + rWorld;
 
-        // Penetration below the (flat) ground plane. NED: down is +Z, and the
-        // ground sits at NED z = -elevation, so penetration = p_z + elevation.
-        const double penetration = pWorld.z + groundElevation_;
+        // Penetration below the ground. NED: down is +Z and the ground surface
+        // sits at NED z = -height, so penetration = p_z + height(north, east).
+        const double penetration = pWorld.z + groundHeight(pWorld.x, pWorld.y);
         if (penetration <= 0.0) continue; // wheel is above the ground
 
         // Velocity of the contact point (world frame).
@@ -81,7 +81,7 @@ bool LandingGearForce::anyContact(const RigidBodyState& state) const {
     const Quat& q = state.orientation;
     for (const GearUnit& g : gear_) {
         const Vec3 pWorld = state.positionWorld + q.rotate(g.position);
-        if (pWorld.z + groundElevation_ > 0.0) return true;
+        if (pWorld.z + groundHeight(pWorld.x, pWorld.y) > 0.0) return true;
     }
     return false;
 }

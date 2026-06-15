@@ -9,6 +9,9 @@ set(FSIM_TESTS
     test_aero
     test_trim
     test_gear
+    test_mat4
+    test_render
+    test_terrain
 )
 
 foreach(test_name ${FSIM_TESTS})
