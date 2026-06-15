@@ -11,14 +11,19 @@ forces.
 | Phase | Scope | State |
 |-------|-------|-------|
 | **1** | Core physics: 6DOF rigid body, ISA atmosphere, forces/moments, RK4 integrator | ✅ implemented & validated (headless) |
-| 2 | Aerodynamics, propulsion, ground handling (data-driven Cessna 172) | planned |
+| **2** | Aerodynamics, propulsion, ground handling (data-driven Cessna 172) | ✅ implemented & validated (headless) |
 | 3 | OpenGL renderer: terrain, aircraft, cameras, weather visuals | planned |
 | 4 | Cockpit systems, instruments, navigation, engine systems | planned |
 | 5 | Advanced weather: wind layers, Dryden turbulence | planned |
 | 6 | Optimization: LOD, profiling, tuning | planned |
 
-See [`docs/PHASE1_PHYSICS.md`](docs/PHASE1_PHYSICS.md) for the architecture,
-physics equations, and validation of the current core.
+See [`docs/PHASE1_PHYSICS.md`](docs/PHASE1_PHYSICS.md) and
+[`docs/PHASE2_AERODYNAMICS.md`](docs/PHASE2_AERODYNAMICS.md) for the
+architecture, physics equations, and validation of the current core.
+
+The headless demo loads the data-driven Cessna 172, trims it for level cruise,
+flies it hands-off, applies a nose-up elevator pulse, and shows the resulting
+**phugoid** oscillation — all emergent from the aerodynamics, none scripted.
 
 ## Design principles
 
@@ -48,9 +53,14 @@ always builds without them.
 ## Layout
 
 ```
-src/core/      math (Vec3/Mat3/Quat), constants, frame conventions
-src/physics/   rigid body, equations of motion, atmosphere, integrator, sim driver
-src/app/       headless demo entry point
-tests/         dependency-free unit/validation tests
-docs/          per-phase engineering documentation
+src/core/        math (Vec3/Mat3/Quat), constants, frames, controls, JSON reader
+src/physics/     rigid body, equations of motion, atmosphere, integrator, sim driver
+src/aircraft/    data-driven aircraft definition + loader, trim solver
+src/aero/        aerodynamic force/moment model (stability derivatives + stall)
+src/propulsion/  piston + propeller thrust model
+src/ground/      landing-gear spring-damper + tire friction
+src/app/         headless demo entry point
+data/aircraft/   aircraft data files (e.g. cessna172.json)
+tests/           dependency-free unit/validation tests
+docs/            per-phase engineering documentation
 ```

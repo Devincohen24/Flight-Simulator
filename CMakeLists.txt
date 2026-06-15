@@ -31,9 +31,15 @@ option(FSIM_BUILD_RENDERER "Build the OpenGL renderer (Milestone 3+)" OFF)
 #   so the physics can be validated in CI / headless containers.
 # ---------------------------------------------------------------------------
 add_library(fsim_core
+    src/core/Json.cpp
     src/physics/Atmosphere.cpp
     src/physics/RigidBody.cpp
     src/physics/Simulation.cpp
+    src/aircraft/Aircraft.cpp
+    src/aircraft/Trim.cpp
+    src/aero/Aerodynamics.cpp
+    src/propulsion/Propulsion.cpp
+    src/ground/LandingGear.cpp
 )
 target_include_directories(fsim_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 

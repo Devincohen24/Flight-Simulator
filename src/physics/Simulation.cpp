@@ -15,7 +15,7 @@ EnvironmentSample Simulation::environment() const {
 }
 
 Wrench Simulation::currentWrench() const {
-    return forces_.total(state_, mass_, environment());
+    return forces_.total(state_, mass_, environment(), controls_);
 }
 
 void Simulation::step() {
@@ -24,7 +24,7 @@ void Simulation::step() {
     // The force functor closes over the (constant-within-step) environment.
     // Each RK4 stage re-evaluates the forces at its trial state.
     const ForceFunction forceFn = [this, &env](const RigidBodyState& s) {
-        return forces_.total(s, mass_, env);
+        return forces_.total(s, mass_, env, controls_);
     };
 
     state_ = integrate(state_, mass_, forceFn, fixedDt_, integrator_);

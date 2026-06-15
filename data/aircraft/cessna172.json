@@ -1,0 +1,77 @@
+{
+  "name": "Cessna 172 Skyhawk",
+
+  // Mass and body-frame inertia tensor (kg, kg*m^2). Representative values for
+  // a loaded C172 (Roskam / typical teaching datasets).
+  "mass_properties": {
+    "mass": 1043.0,
+    "Ixx": 1285.0,
+    "Iyy": 1825.0,
+    "Izz": 2667.0,
+    "Ixz": 0.0
+  },
+
+  // Reference wing geometry.
+  "wing": {
+    "area": 16.2,
+    "span": 11.0,
+    "chord": 1.49,
+    "oswald": 0.75
+  },
+
+  // Stability and control derivatives (per radian). Standard linearised C172
+  // longitudinal + lateral/directional set.
+  "aero": {
+    "CL0": 0.31,  "CLalpha": 5.143, "CLq": 3.9,  "CLde": 0.43, "CLflap": 0.7,
+    "CD0": 0.031,
+
+    "CYbeta": -0.31, "CYdr": 0.187,
+
+    "Clbeta": -0.089, "Clp": -0.47, "Clr": 0.096, "Clda": -0.178, "Cldr": 0.0147,
+
+    "Cm0": -0.015, "Cmalpha": -0.89, "Cmq": -12.4, "Cmde": -1.28,
+
+    "Cnbeta": 0.065, "Cnp": -0.03, "Cnr": -0.099, "Cnda": -0.053, "Cndr": -0.0657,
+
+    "alpha_stall": 0.2792,
+    "stall_blend_rate": 20.0
+  },
+
+  // Maximum control-surface deflections (radians) mapped from normalised input.
+  "control_limits": {
+    "elevator_max": 0.3491,
+    "aileron_max": 0.3491,
+    "rudder_max": 0.2793,
+    "flap_max": 0.5236
+  },
+
+  // Lycoming O-320, ~160 hp, fixed-pitch propeller.
+  "propulsion": {
+    "max_power": 119000.0,
+    "prop_diameter": 1.93,
+    "prop_efficiency": 0.80,
+    "idle_power_fraction": 0.05,
+    "thrust_point": [0.9, 0.0, 0.0],
+    "thrust_axis":  [1.0, 0.0, 0.0]
+  },
+
+  // Tricycle landing gear: steerable nose wheel + two braked mains.
+  // Positions are body-frame contact points (m), +x fwd, +y right, +z down.
+  "gear": [
+    { "name": "nose",
+      "position": [0.9, 0.0, 1.0],
+      "stiffness": 35000.0, "damping": 4500.0,
+      "friction_roll": 0.04, "friction_side": 0.6, "friction_brake": 0.0,
+      "braked": false },
+    { "name": "main_left",
+      "position": [-0.5, -1.2, 1.0],
+      "stiffness": 45000.0, "damping": 5500.0,
+      "friction_roll": 0.04, "friction_side": 0.8, "friction_brake": 0.5,
+      "braked": true },
+    { "name": "main_right",
+      "position": [-0.5, 1.2, 1.0],
+      "stiffness": 45000.0, "damping": 5500.0,
+      "friction_roll": 0.04, "friction_side": 0.8, "friction_brake": 0.5,
+      "braked": true }
+  ]
+}

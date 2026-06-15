@@ -13,6 +13,7 @@
 #include "physics/RigidBody.hpp"
 #include "physics/ForceModel.hpp"
 #include "physics/Integrator.hpp"
+#include "core/Controls.hpp"
 
 namespace fsim {
 
@@ -28,10 +29,12 @@ public:
     void setMassProperties(const MassProperties& mp) { mass_ = mp; }
     void addForceModel(std::shared_ptr<ForceModel> m) { forces_.add(std::move(m)); }
     void setIntegrator(IntegratorType t)      { integrator_ = t; }
+    void setControls(const ControlInputs& c) { controls_ = c; controls_.clamp(); }
 
     // --- Accessors ---
     const RigidBodyState& state() const { return state_; }
     const MassProperties& mass()  const { return mass_; }
+    const ControlInputs&  controls() const { return controls_; }
     double time() const { return time_; }
     double fixedTimeStep() const { return fixedDt_; }
 
@@ -55,6 +58,7 @@ private:
     double          accumulator_{0.0};
     RigidBodyState  state_{};
     MassProperties  mass_{};
+    ControlInputs   controls_{};
     CompositeForceModel forces_{};
     IntegratorType  integrator_{IntegratorType::RK4};
 };

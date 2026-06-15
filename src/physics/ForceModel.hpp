@@ -15,6 +15,7 @@
 #include "physics/RigidBody.hpp"
 #include "physics/Atmosphere.hpp"
 #include "core/Constants.hpp"
+#include "core/Controls.hpp"
 
 #include <memory>
 #include <vector>
@@ -35,7 +36,8 @@ public:
     // Compute this model's contribution to the total wrench (body frame).
     virtual Wrench evaluate(const RigidBodyState& state,
                             const MassProperties& mass,
-                            const EnvironmentSample& env) const = 0;
+                            const EnvironmentSample& env,
+                            const ControlInputs& controls) const = 0;
 
     // Human-readable label, useful for force breakdown / debugging.
     virtual const char* name() const = 0;
@@ -49,7 +51,8 @@ class GravityForce final : public ForceModel {
 public:
     Wrench evaluate(const RigidBodyState& state,
                     const MassProperties& mass,
-                    const EnvironmentSample& /*env*/) const override {
+                    const EnvironmentSample& /*env*/,
+                    const ControlInputs& /*controls*/) const override {
         // Weight in the world frame points along +Z (down in NED).
         const Vec3 weightWorld{0.0, 0.0, mass.mass * constants::kStandardGravity};
         Wrench w;
@@ -70,9 +73,10 @@ public:
 
     Wrench total(const RigidBodyState& state,
                  const MassProperties& mass,
-                 const EnvironmentSample& env) const {
+                 const EnvironmentSample& env,
+                 const ControlInputs& controls) const {
         Wrench sum;
-        for (const auto& m : models_) sum += m->evaluate(state, mass, env);
+        for (const auto& m : models_) sum += m->evaluate(state, mass, env, controls);
         return sum;
     }
 
