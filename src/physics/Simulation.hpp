@@ -30,6 +30,10 @@ public:
     void addForceModel(std::shared_ptr<ForceModel> m) { forces_.add(std::move(m)); }
     void setIntegrator(IntegratorType t)      { integrator_ = t; }
     void setControls(const ControlInputs& c) { controls_ = c; controls_.clamp(); }
+    // World-frame (NED) wind velocity, held constant across one physics step
+    // (a frozen field during the RK4 sub-stages). Driven by the weather system.
+    void setWind(const Vec3& windWorld) { windWorld_ = windWorld; }
+    const Vec3& wind() const { return windWorld_; }
 
     // --- Accessors ---
     const RigidBodyState& state() const { return state_; }
@@ -63,6 +67,7 @@ private:
     RigidBodyState  state_{};
     MassProperties  mass_{};
     ControlInputs   controls_{};
+    Vec3            windWorld_{};
     CompositeForceModel forces_{};
     IntegratorType  integrator_{IntegratorType::RK4};
 };

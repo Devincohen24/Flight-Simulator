@@ -18,6 +18,7 @@
 #include "systems/Engine.hpp"
 #include "systems/Instruments.hpp"
 #include "systems/Navigation.hpp"
+#include "environment/Weather.hpp"
 
 #include <cstdio>
 #include <memory>
@@ -58,6 +59,12 @@ int main(int argc, char** argv) {
     EngineSystem engine(ac.propulsion);
     engine.start();
 
+    // Weather: a steady westerly crosswind (FROM 270 at 8 m/s) + light chop.
+    WeatherSystem weather;
+    weather.wind().addLayerFromHeading(0.0,    270.0, 8.0);
+    weather.wind().addLayerFromHeading(3000.0, 270.0, 14.0); // stronger aloft
+    weather.turbulence().setParams(DrydenTurbulence::light());
+
     // A VOR / waypoint somewhere ahead, with the field origin near Boulder, CO.
     NavigationComputer nav(Geodetic::fromDegrees(40.0, -105.0), alt0);
     Waypoint wp{"NORTH", Geodetic::fromDegrees(40.30, -105.0)}; // ~33 km north
@@ -83,6 +90,11 @@ int main(int argc, char** argv) {
             const EnvironmentSample env = sim.environment();
             engine.update(sim.fixedTimeStep(), sim.controls().throttle,
                           env.atmosphere.density / 1.225, env.atmosphere.pressure);
+            // Advance the weather and feed the frozen wind to the next step.
+            const double tas = sim.state().velocityBody.norm();
+            const Vec3 wind = weather.update(sim.fixedTimeStep(),
+                                             -sim.state().positionWorld.z, tas);
+            sim.setWind(wind);
             sim.step();
         }
     };
@@ -103,9 +115,14 @@ int main(int argc, char** argv) {
     for (int s = 0; s < 10; ++s) { report(sim.time()); stepOneSecond(); }
 
     const auto gps = nav.fix(sim.state());
+    const EulerAngles fe = toEuler(sim.state().orientation);
     std::printf("\nFinal GPS fix: %.4f, %.4f   alt %.0f m   gs %.1f m/s   trk %.0f deg\n",
                 degrees(gps.position.latitude), degrees(gps.position.longitude),
                 gps.altitude, gps.groundSpeed, gps.track);
+    std::printf("Wind drift: heading %.0f deg vs ground track %.0f deg "
+                "(crab from the %.1f m/s crosswind)\n",
+                degrees(fe.yaw) < 0 ? degrees(fe.yaw) + 360 : degrees(fe.yaw),
+                gps.track, weather.lastWind().norm());
     std::printf("Fuel burned: %.2f kg of %.0f kg\n",
                 ac.propulsion.fuelCapacity - engine.state().fuelRemaining,
                 ac.propulsion.fuelCapacity);

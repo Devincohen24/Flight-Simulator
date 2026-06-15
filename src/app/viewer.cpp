@@ -31,6 +31,7 @@
 #include "terrain/Terrain.hpp"
 #include "systems/Engine.hpp"
 #include "systems/Instruments.hpp"
+#include "environment/Weather.hpp"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -52,6 +53,7 @@ struct App {
     RigidBodyState prev, curr;
     TrimResult trim;
     EngineSystem* engine{nullptr};
+    Vec3 wind{};
 };
 
 // Draw the instrument overlay (Dear ImGui) from the live simulation state.
@@ -80,6 +82,7 @@ void drawHud(const App& app) {
     ImGui::Separator();
     ImGui::Text("THR %3.0f%%  FLAP %3.0f%%", app.controls.throttle * 100.0,
                 app.controls.flaps * 100.0);
+    ImGui::Text("WIND %5.1f m/s", app.wind.norm());
     ImGui::Text("Camera: %s  [1-4]  R=reset", camName[int(app.camera.mode)]);
     ImGui::End();
 }
@@ -204,6 +207,12 @@ int main(int argc, char** argv) {
     engine.start();
     app.engine = &engine;
 
+    // Weather: a westerly breeze with light turbulence.
+    WeatherSystem weather;
+    weather.wind().addLayerFromHeading(0.0,    270.0, 6.0);
+    weather.wind().addLayerFromHeading(3000.0, 270.0, 12.0);
+    weather.turbulence().setParams(DrydenTurbulence::light());
+
     app.trim = trimLevelFlight(ac, 55.0, 800.0);
     resetToTrim(app);
     app.camera.mode = CameraMode::Chase;
@@ -249,6 +258,9 @@ int main(int argc, char** argv) {
             const EnvironmentSample env = app.sim.environment();
             engine.update(dt, app.controls.throttle,
                           env.atmosphere.density / 1.225, env.atmosphere.pressure);
+            const double tas = app.sim.state().velocityBody.norm();
+            app.wind = weather.update(dt, -app.sim.state().positionWorld.z, tas);
+            app.sim.setWind(app.wind);
             app.prev = app.sim.state();
             app.sim.step();
             app.curr = app.sim.state();

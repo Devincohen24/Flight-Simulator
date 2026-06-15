@@ -10,7 +10,7 @@ EnvironmentSample Simulation::environment() const {
     // NED: down is +Z, so geometric altitude above MSL is the negated Z.
     const double altitude = -state_.positionWorld.z;
     env.atmosphere = Atmosphere::sample(altitude);
-    env.windWorld  = Vec3{0.0, 0.0, 0.0}; // no wind until Phase 5
+    env.windWorld  = windWorld_; // set by the weather system (Phase 5)
     return env;
 }
 

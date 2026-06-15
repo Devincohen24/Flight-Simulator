@@ -14,13 +14,14 @@ forces.
 | **2** | Aerodynamics, propulsion, ground handling (data-driven Cessna 172) | ✅ implemented & validated (headless) |
 | **3** | OpenGL renderer: terrain, aircraft, cameras, sky/fog, interpolation | ✅ render math + terrain validated (headless); GL backend builds with `-DFSIM_BUILD_RENDERER=ON` |
 | **4** | Cockpit systems, instruments, navigation, engine systems | ✅ implemented & validated (headless); ImGui HUD in the viewer |
-| 5 | Advanced weather: wind layers, Dryden turbulence | planned |
+| **5** | Advanced weather: wind layers, Dryden turbulence | ✅ implemented & validated (headless) |
 | 6 | Optimization: LOD, profiling, tuning | planned |
 
 See [`docs/PHASE1_PHYSICS.md`](docs/PHASE1_PHYSICS.md),
 [`docs/PHASE2_AERODYNAMICS.md`](docs/PHASE2_AERODYNAMICS.md), and
 [`docs/PHASE3_RENDERING.md`](docs/PHASE3_RENDERING.md), and
-[`docs/PHASE4_SYSTEMS.md`](docs/PHASE4_SYSTEMS.md) for the architecture,
+[`docs/PHASE4_SYSTEMS.md`](docs/PHASE4_SYSTEMS.md), and
+[`docs/PHASE5_WEATHER.md`](docs/PHASE5_WEATHER.md) for the architecture,
 physics/render equations, and validation of the current systems.
 
 The headless demo loads the data-driven Cessna 172, trims it for level cruise,
@@ -65,6 +66,7 @@ src/terrain/     height-field terrain (shared by gear collision and rendering)
 src/render/      cameras, NED↔GL, state interpolation, frustum (headless core)
 src/render/gl/   OpenGL 3.3 backend: shaders, meshes, renderer (gated)
 src/systems/     engine, flight instruments, navigation (GPS/waypoint/VOR)
+src/environment/ weather: layered wind + Dryden/Gauss-Markov turbulence
 src/app/         headless demo + interactive viewer entry points
 data/aircraft/   aircraft data files (e.g. cessna172.json)
 tests/           dependency-free unit/validation tests
