@@ -88,28 +88,48 @@ void Renderer::resize(int width, int height) {
     glViewport(0, 0, width_, height_);
 }
 
-void Renderer::maybeRebuildTerrain(double north, double east) {
+void Renderer::rebuildTerrainLod(const Vec3& cameraNed) {
     if (!terrain_) return;
-    // Rebuild when the aircraft has moved a quarter of the patch from centre.
-    const double threshold = terrainExtent_ * 0.25;
-    if (std::fabs(north - terrainCenterN_) < threshold &&
-        std::fabs(east  - terrainCenterE_) < threshold)
+    // Rebuild only when the camera has moved a finest-tile from the last build.
+    if (std::fabs(cameraNed.x - lastBuildN_) < qtParams_.minTileSize * 0.5 &&
+        std::fabs(cameraNed.y - lastBuildE_) < qtParams_.minTileSize * 0.5 &&
+        !chunks_.empty())
         return;
+
+    // Select adaptive tiles for the camera over a world-centred region.
+    std::vector<TerrainTile> tiles;
+    selectTerrainTiles(qtParams_, cameraNed, /*frustum=*/nullptr, 0.0, 0.0, tiles);
+
+    chunks_.clear();
+    chunks_.reserve(tiles.size());
     std::vector<Vertex> v;
     std::vector<uint32_t> idx;
-    buildTerrainMesh(*terrain_, north, east, terrainExtent_, terrainSegments_, v, idx);
-    terrainMesh_.upload(v, idx);
-    terrainCenterN_ = north;
-    terrainCenterE_ = east;
+    for (const TerrainTile& t : tiles) {
+        buildTerrainMesh(*terrain_, t.centerNorth, t.centerEast, t.size,
+                         tileSegments_, v, idx);
+        TerrainChunk chunk;
+        chunk.mesh = std::make_unique<Mesh>();
+        chunk.mesh->upload(v, idx);
+        // GL-space bounds: nedToGl(n,e,d)=(e,-d,-n), elevation = -d.
+        const double h = t.size * 0.5;
+        chunk.bounds.min = Vec3{t.centerEast - h, qtParams_.minElevation,
+                                -(t.centerNorth + h)};
+        chunk.bounds.max = Vec3{t.centerEast + h, qtParams_.maxElevation,
+                                -(t.centerNorth - h)};
+        chunks_.push_back(std::move(chunk));
+    }
+    lastBuildN_ = cameraNed.x;
+    lastBuildE_ = cameraNed.y;
 }
 
 void Renderer::renderFrame(const Camera& camera, const RenderState& aircraft) {
-    maybeRebuildTerrain(aircraft.positionWorld.x, aircraft.positionWorld.y);
+    rebuildTerrainLod(camera.eyeNed());
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     const double aspect = double(width_) / double(height_);
     const Mat4 viewProj = camera.viewProjection(aspect);
+    const Frustum frustum(viewProj);
 
     shader_.use();
     shader_.setMat4("uViewProj", viewProj);
@@ -119,11 +139,14 @@ void Renderer::renderFrame(const Camera& camera, const RenderState& aircraft) {
     shader_.setVec3("uFogColor", Vec3{0.53, 0.70, 0.92});
     shader_.setFloat("uFogDensity", 1.0e-4f);
 
-    // Terrain (vertices already in GL world space -> identity model).
-    if (terrain_) {
-        shader_.setMat4("uModel", Mat4::identity());
-        shader_.setVec3("uColor", Vec3{0.30, 0.55, 0.27}); // grass green
-        terrainMesh_.draw();
+    // Terrain: draw only the LOD chunks inside the view frustum.
+    shader_.setMat4("uModel", Mat4::identity());
+    shader_.setVec3("uColor", Vec3{0.30, 0.55, 0.27}); // grass green
+    lastDrawnChunks_ = 0;
+    for (const TerrainChunk& c : chunks_) {
+        if (!frustum.intersectsAABB(c.bounds)) continue;
+        c.mesh->draw();
+        ++lastDrawnChunks_;
     }
 
     // Aircraft.

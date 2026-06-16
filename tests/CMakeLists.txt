@@ -15,6 +15,8 @@ set(FSIM_TESTS
     test_systems
     test_navigation
     test_weather
+    test_lod
+    test_performance
 )
 
 foreach(test_name ${FSIM_TESTS})

@@ -57,7 +57,7 @@ struct App {
 };
 
 // Draw the instrument overlay (Dear ImGui) from the live simulation state.
-void drawHud(const App& app) {
+void drawHud(const App& app, const gl::Renderer& renderer) {
     const EnvironmentSample env = app.sim.environment();
     const InstrumentReadings r = computeInstruments(
         app.sim.state(), env, app.engine->state(), app.sim.specificForceBody());
@@ -83,6 +83,8 @@ void drawHud(const App& app) {
     ImGui::Text("THR %3.0f%%  FLAP %3.0f%%", app.controls.throttle * 100.0,
                 app.controls.flaps * 100.0);
     ImGui::Text("WIND %5.1f m/s", app.wind.norm());
+    ImGui::Text("Terrain chunks %d/%d drawn", renderer.lastDrawnChunks(),
+                renderer.lastChunkCount());
     ImGui::Text("Camera: %s  [1-4]  R=reset", camName[int(app.camera.mode)]);
     ImGui::End();
 }
@@ -271,7 +273,7 @@ int main(int argc, char** argv) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        drawHud(app);
+        drawHud(app, renderer);
         ImGui::Render();
 
         // Draw the 3D scene, then the overlay.

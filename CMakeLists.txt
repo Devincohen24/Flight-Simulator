@@ -41,6 +41,7 @@ add_library(fsim_core
     src/propulsion/Propulsion.cpp
     src/ground/LandingGear.cpp
     src/terrain/Terrain.cpp
+    src/terrain/Quadtree.cpp
     src/render/Camera.cpp
     src/systems/Engine.cpp
     src/systems/Instruments.cpp
